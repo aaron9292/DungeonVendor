@@ -1,0 +1,9 @@
+{
+  "name": "dungeon-vendor-modular",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Dungeon Vendor (modular): HTML+CSS with JS in main.js; includes daily mode and theme toggle.",
+  "scripts": {
+    "dev": "node server.js"
+  }
+}

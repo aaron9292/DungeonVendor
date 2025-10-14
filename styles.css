@@ -1,0 +1,274 @@
+:root {
+  --bg: #f2f3f5;      /* soft gray */
+  --text: #111827;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --good: #059669;
+  --bad: #dc2626;
+  --chip: #f3f4f6;
+  --card: #ffffff;
+}
+
+[data-theme="dark"] {
+  --bg: #0b0e12;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --border: #1f2937;
+  --accent: #60a5fa;
+  --good: #34d399;
+  --bad: #f87171;
+  --chip: #11151b;
+  --card: #0f1318;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 16px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+}
+
+.wrap { max-width: 720px; margin: 32px auto 64px; padding: 0 16px; }
+
+/* Header (only daily status) */
+header { display: flex; align-items: center; justify-content: center; margin-bottom: 18px; }
+.title { font-weight: 800; font-size: 20px; text-align: center; }
+
+/* Settings button + menu */
+.settings-btn {
+  position: fixed; top: 16px; left: 16px;
+  border: 1px solid var(--border);
+  background: var(--chip);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 1001;
+}
+.settings-menu {
+  position: fixed; top: 56px; left: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.15);
+  padding: 8px; width: 220px; display: none;
+  z-index: 1000;
+}
+.settings-menu.is-open { display: block; }
+.settings-menu .item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; border-radius: 8px; cursor: pointer;
+}
+.settings-menu .item:hover { background: var(--chip); }
+
+.panel { background: var(--card); border:1px solid var(--border); border-radius: 10px; padding: 14px; }
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+.stat {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--chip); color: var(--text); font-weight: 700; font-size: 13px;
+}
+.stat small { font-weight: 600; color: var(--muted); }
+.good { color: var(--good); }
+.bad { color: var(--bad); }
+.accent { color: var(--accent); }
+
+button, .btn {
+  appearance: none; border: 1px solid var(--border);
+  background: var(--chip); color: var(--text);
+  border-radius: 8px; padding: 8px 12px; font-weight: 700; cursor: pointer;
+  transition: transform .02s ease, background .15s ease, border-color .15s ease;
+}
+button:hover { background: #eef2ff11; border-color: var(--accent); }
+button:active { transform: translateY(1px); }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.card { background: var(--card); border:1px solid var(--border); border-radius: 10px; padding: 10px; display: grid; gap: 8px; }
+.card h3 { margin: 0; font-size: 15px; font-weight: 800; }
+.mods { display: grid; gap: 2px; color: var(--muted); font-size: 13px; }
+.mods span b { color: var(--text); font-weight: 800; }
+.select { display: flex; align-items: center; justify-content: flex-end; }
+
+.footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 10px; }
+.log {
+  white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px; color: var(--muted); background: var(--chip);
+  border: 1px solid var(--border); border-radius: 10px; padding: 10px;
+}
+
+.item-img {
+  width: 100%;
+  max-width: 64px;
+  height: auto;
+  display: block;
+  margin: 0 auto 8px;
+  object-fit: contain;
+}
+
+.card.selected {
+  border: 2px solid #3bdb3b;
+  box-shadow: 0 0 6px rgba(0, 255, 0, 0.4);
+}
+
+/* Small helper */
+.hint { color: var(--muted); font-size: 12px; }
+
+/* Base card layout */
+.item-card {
+  display: inline-block;
+  background: white;
+  border: 2px solid #ccc;      /* Default border */
+  border-radius: 8px;
+  padding: 10px;
+  margin: 8px;
+  width: min(160px, 45vw);
+  text-align: center;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+/* Card hover for better feedback */
+.item-card:hover {
+  border-color: #888;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Selected state → green border and glow */
+.item-card.selected {
+  border-color: #3bd43b;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+}
+
+/* Item image */
+.item-img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  margin-bottom: 6px;
+}
+
+/* Ensures item name always stays on one line */
+.item-card h3 {
+  white-space: nowrap;           /* prevent wrapping */
+  overflow: hidden;              /* hide overflow */
+  text-overflow: ellipsis;       /* add … if still too long */
+  font-size: clamp(0.8rem, 1vw + 0.5rem, 1.1rem);
+  margin: 4px 0;
+}
+
+/* Force centering of target stats */
+#targetsRow {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 12px;
+  margin: 10px auto;         /* centers block itself */
+  text-align: center;
+  width: 100%;
+}
+
+/* Ensure .stat chips look consistent */
+#targetsRow .stat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #f5f5f5;
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 0.95rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+
+/* Center only the "Stats: ..." label above the puzzle cards */
+.stats-label { text-align: center; display: block; width: 100%; }
+
+/* How It Works modal overlay */
+#howItWorksPopup {
+  position: fixed;
+  inset: 0;
+  display: none;               /* toggled via .hidden */
+  place-items: center;
+  background: rgba(0,0,0,0.45);
+  z-index: 1500;
+}
+#howItWorksPopup.hidden { display: none; }
+#howItWorksPopup:not(.hidden) { display: grid; }
+
+#howItWorksPopup .hiw-card {
+  max-width: 560px;
+  width: min(92vw, 560px);
+  background: var(--card, #fff);
+  color: var(--text, #111);
+  border: 1px solid var(--border, #ddd);
+  border-radius: 14px;
+  padding: 18px 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  line-height: 1.45;
+}
+#howItWorksPopup .hiw-card h3 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+}
+#howItWorksPopup .hiw-card ul {
+  margin: 8px 0 0 1rem;
+}
+
+/* === Dark-mode readability fixes (append at end of styles.css) === */
+
+/* Make "muted" text a bit brighter in dark mode */
+[data-theme="dark"] {
+  --muted: #cbd5e1;    /* was too dim; bump readability */
+}
+
+/* Use theme colors for item cards (not hardcoded white/gray) */
+.item-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+}
+
+/* Ensure item names are crisp */
+.item-card h3 {
+  color: var(--text);
+  font-weight: 800;
+}
+
+/* Make per-item modifiers readable:
+   label text = muted, numbers = full contrast */
+.mods {
+  color: var(--muted);
+}
+.mods span b {
+  color: var(--text);
+}
+
+/* Target stat chips: remove fixed light background; use themed chip/border */
+#targetsRow .stat {
+  background: var(--chip);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: none; /* optional: reduce haze in dark mode */
+}
+
+/* Generic stat chip also respects theme (for totals row, etc.) */
+.stat {
+  background: var(--chip);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+/* "Stats: ..." label above the grid should be full contrast */
+.stats-label {
+  color: var(--text);
+}
+
+/* Cards (if you use .card elsewhere) should also follow theme vars */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+}
