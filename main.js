@@ -89,6 +89,13 @@ function renderTargets(){
     '<div class="stat">⚔️ <small>Damage</small> <b>'+t.d+'</b></div>' +
     '<div class="stat">🛡️ <small>Armor</small> <b>'+t.a+'</b></div>' +
     '<div class="stat">🕵️ <small>Stealth</small> <b>'+t.s+'</b></div>';
+
+    const count = state.solutionCount || '?';
+    const countDiv = document.createElement('div');
+    countDiv.className = 'stat solution-count';
+    countDiv.innerHTML = `🧩 <small>Items in Solution</small> <b>${count}</b>`;
+  
+    TR.appendChild(countDiv);
 }
 
 function computeTotals(selectedIds){
@@ -158,6 +165,7 @@ function buildSolvableFromHiddenSolution(cfg) {
   const [minSol, maxSol] = settings.solutionSizeRange;
   const solLen = roll(minSol, maxSol, rng);
   const solution = pickItems(withStats, solLen, rng);
+  state.solutionCount = solLen;
 
   // 4) Compute the target
   const add = { d:0, a:0, s:0 };
@@ -377,4 +385,49 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // ============================
+// CLICK SOUND FINAL FIX
+// ============================
+window.addEventListener("DOMContentLoaded", () => {
+  const clickSound = document.getElementById("clickSound");
+  if (!clickSound) return;
+
+  let audioUnlocked = false;
+
+  // Unlock audio context on the very first user click
+  document.addEventListener("pointerdown", () => {
+    if (!audioUnlocked) {
+      const silent = clickSound.cloneNode(true);
+      silent.volume = 0;
+      silent.play().catch(() => {});
+      audioUnlocked = true;
+    }
+  }, { once: true });
+
+  function playClick() {
+    const s = clickSound.cloneNode(true);
+    s.volume = 0.4;
+    s.play().catch(err => console.warn("Audio blocked:", err));
+  }
+
+  // Buttons
+  const ids = ["btnSubmit", "btnClear", "btnSettings", "darkModeToggle", "howItWorksBtn"];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("click", playClick);
+  });
+
+  // Dynamically created item cards
+  const observer = new MutationObserver(() => {
+    document.querySelectorAll(".item-card").forEach(el => {
+      if (!el.dataset.clickBound) {
+        el.addEventListener("click", playClick);
+        el.dataset.clickBound = "true";
+      }
+    });
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+});
+
 })();

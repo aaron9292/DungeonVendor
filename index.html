@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dungeon Vendor</title>
+  <link rel="icon" type="image/png" href="dungeon vendor icon.png" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -37,7 +38,7 @@
     </section>
   </div>
 
-  <!-- How It Works modal lives OUTSIDE the menu so it can overlay the whole app -->
+  <!-- How It Works modal -->
   <div id="howItWorksPopup" class="hidden">
     <div class="hiw-card">
       <h3>How It Works</h3>
@@ -54,6 +55,9 @@
       <p><i>Tip: Click anywhere to close.</i></p>
     </div>
   </div>
+
+  <!-- ✅ Click Sound -->
+  <audio id="clickSound" src="click.mp3" preload="auto"></audio>
 
   <script src="main.js"></script>
 </body>
