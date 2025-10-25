@@ -6,7 +6,8 @@ const state = {
   target: { d: 0, a: 0, s: 0 },
   selected: [],
   rng: null,
-  daily: { diffIndex: 0, round: 0 } // 0-based
+  daily: { diffIndex: 0, round: 0 }, // 0-based
+  solutionCount: 0
 };
 
 // ============================
@@ -45,24 +46,24 @@ function statRow(icon, add, mult){
 }
 
 // ============================
-// Item pool (your originals)
+// Item pool
 // ============================
 const BASE_ITEMS = [
-  { name: 'Sword',            image: 'sword.png' },
-  { name: 'Dagger',           image: 'dagger.png' },
-  { name: 'Heavy Shield',     image: 'heavy shield.png' },
-  { name: 'Leather Armor',    image: 'leather armor.png' },
-  { name: 'Cloak of Shade',   image: 'cloak of shade.png' },
-  { name: 'Warhammer',        image: 'warhammer.png' },
-  { name: 'Silent Boots',     image: 'silent boots.png' },
-  { name: 'Thorns Mail',      image: 'thorn mail.png' },
-  { name: 'Blessed Charm',    image: 'blessed charm.png' },
-  { name: 'Throwing Knives',  image: 'throwing knives.png' },
-  { name: 'Tower Shield',     image: 'tower shield.png' },
-  { name: 'Feather Cape',     image: 'feather cape.png' },
-  { name: 'Spiked Gauntlet',  image: 'spiked gauntlet.png' },
-  { name: 'Plain Ring',       image: 'plain ring.png' },
-  { name: 'Adept Band',       image: 'adept band.png' }
+  { name: 'Sword', image: 'sword.png' },
+  { name: 'Dagger', image: 'dagger.png' },
+  { name: 'Heavy Shield', image: 'heavy shield.png' },
+  { name: 'Leather Armor', image: 'leather armor.png' },
+  { name: 'Cloak of Shade', image: 'cloak of shade.png' },
+  { name: 'Warhammer', image: 'warhammer.png' },
+  { name: 'Silent Boots', image: 'silent boots.png' },
+  { name: 'Thorns Mail', image: 'thorn mail.png' },
+  { name: 'Blessed Charm', image: 'blessed charm.png' },
+  { name: 'Throwing Knives', image: 'throwing knives.png' },
+  { name: 'Tower Shield', image: 'tower shield.png' },
+  { name: 'Feather Cape', image: 'feather cape.png' },
+  { name: 'Spiked Gauntlet', image: 'spiked gauntlet.png' },
+  { name: 'Plain Ring', image: 'plain ring.png' },
+  { name: 'Adept Band', image: 'adept band.png' }
 ];
 
 // ============================
@@ -90,12 +91,11 @@ function renderTargets(){
     '<div class="stat">🛡️ <small>Armor</small> <b>'+t.a+'</b></div>' +
     '<div class="stat">🕵️ <small>Stealth</small> <b>'+t.s+'</b></div>';
 
-    const count = state.solutionCount || '?';
-    const countDiv = document.createElement('div');
-    countDiv.className = 'stat solution-count';
-    countDiv.innerHTML = `🧩 <small>Items in Solution</small> <b>${count}</b>`;
-  
-    TR.appendChild(countDiv);
+  const count = state.solutionCount || '?';
+  const countDiv = document.createElement('div');
+  countDiv.className = 'stat solution-count';
+  countDiv.innerHTML = `🧩 <small>Items in Solution</small> <b>${count}</b>`;
+  TR.appendChild(countDiv);
 }
 
 function computeTotals(selectedIds){
@@ -127,16 +127,45 @@ function isSolved(){
 }
 
 // ============================
+// Save / Load Puzzle (Persistence)
+// ============================
+function savePuzzleState(){
+  try {
+    const data = {
+      items: state.items,
+      target: state.target,
+      difficulty: state.daily.diffIndex,
+      round: state.daily.round,
+      solutionCount: state.solutionCount
+    };
+    localStorage.setItem('dungeonVendorPuzzle', JSON.stringify(data));
+  } catch(e){ console.warn('Save failed', e); }
+}
+
+function loadSavedPuzzle(){
+  try {
+    const raw = localStorage.getItem('dungeonVendorPuzzle');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed;
+  } catch(e){
+    console.warn('Load failed', e);
+    return null;
+  }
+}
+
+function clearSavedPuzzle(){
+  localStorage.removeItem('dungeonVendorPuzzle');
+}
+
+// ============================
 // Build a solvable round
 // ============================
 function buildSolvableFromHiddenSolution(cfg) {
   const rng = state.rng || Math.random;
   const settings = DIFFICULTY_SETTINGS[cfg.name || cfg];
-
-  // 1) Pick subset to show
   const subset = pickItems(BASE_ITEMS, settings.poolSize, rng);
 
-  // 2) Assign stats to that subset
   const withStats = subset.map((item, i) => {
     let mult = { d:1, a:1, s:1 };
     if (settings.allowMult) {
@@ -160,14 +189,11 @@ function buildSolvableFromHiddenSolution(cfg) {
   });
 
   state.items = withStats;
-
-  // 3) Hidden solution
   const [minSol, maxSol] = settings.solutionSizeRange;
   const solLen = roll(minSol, maxSol, rng);
   const solution = pickItems(withStats, solLen, rng);
   state.solutionCount = solLen;
 
-  // 4) Compute the target
   const add = { d:0, a:0, s:0 };
   const mul = { d:1, a:1, s:1 };
   for (const it of solution) {
@@ -179,6 +205,8 @@ function buildSolvableFromHiddenSolution(cfg) {
     a: round2(add.a * mul.a),
     s: round2(add.s * mul.s)
   };
+
+  savePuzzleState(); // ✅ save automatically
 }
 
 // ============================
@@ -231,34 +259,64 @@ function render(){
 // ============================
 // Daily progression
 // ============================
-function nextDailyRound(reset=false){
-  if (reset){ state.daily.diffIndex = 0; state.daily.round = 0; }
-  buildSolvableFromHiddenSolution({ name: curDiffName() });
+
+function advanceAfterSuccess() {
+  const logEl = document.getElementById('log');
+
+  // ---- Advance to next round or difficulty ----
+  if (state.daily.round < 2) {
+    state.daily.round += 1;
+  } else if (state.daily.diffIndex < DIFF_ORDER.length - 1) {
+    state.daily.diffIndex += 1;
+    state.daily.round = 0;
+  } else {
+    if (logEl) logEl.textContent = '🏆 All difficulties complete! Daily done!';
+    clearSavedPuzzle();
+    return;
+  }
+
+  // ---- Clear and generate a fresh puzzle with the new difficulty ----
+  clearSavedPuzzle();
+  nextDailyRound(false); // don't reset everything
+  if (logEl) {
+    logEl.textContent = `➡️ Advanced to ${curDiffName()} • Round ${state.daily.round + 1}/3`;
+  }
+}
+
+function nextDailyRound(reset = false) {
+  if (reset) {
+    state.daily.diffIndex = 0;
+    state.daily.round = 0;
+  }
+
+  const diffName = curDiffName();
+  console.log(`Generating new puzzle: ${diffName} Round ${state.daily.round + 1}`);
+  
+  buildSolvableFromHiddenSolution({ name: diffName });
   state.selected = [];
   updateHeader();
   render();
 }
 
-function advanceAfterSuccess(){
-  if (state.daily.round < 2){
-    state.daily.round += 1;
-  } else if (state.daily.diffIndex < DIFF_ORDER.length - 1){
-    state.daily.diffIndex += 1;
-    state.daily.round = 0;
-  } else {
-    const logEl = document.getElementById('log');
-    if (logEl) logEl.textContent = 'Daily complete! 🎉';
-    return;
-  }
-  nextDailyRound();
-}
-
 // ============================
-// Wire buttons & boot
+// Boot sequence
 // ============================
 window.addEventListener('DOMContentLoaded', () => {
   state.rng = Math.random;
-  nextDailyRound(true);
+
+  const saved = loadSavedPuzzle();
+  if (saved) {
+    console.log("Restoring saved puzzle:", saved);
+    state.items = saved.items;
+    state.target = saved.target;
+    state.daily.diffIndex = saved.difficulty ?? 0;
+    state.daily.round = saved.round ?? 0;
+    state.solutionCount = saved.solutionCount ?? '?';
+    updateHeader();
+    render();
+  } else {
+    nextDailyRound(true);
+  }
 
   const submitBtn = document.getElementById('btnSubmit');
   if (submitBtn) {
@@ -284,110 +342,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============================
-// Settings toggle
-// ============================
-(function setupSettingsMenu(){
-  const settingsBtn =
-    document.getElementById('btnSettings') ||
-    document.getElementById('settingsBtn') ||
-    document.querySelector('.settings-btn');
-
-  const settingsMenu =
-    document.getElementById('settingsMenu') ||
-    document.querySelector('.settings-menu');
-
-  if (!settingsBtn || !settingsMenu) return;
-
-  if (!settingsBtn.getAttribute('type')) settingsBtn.setAttribute('type', 'button');
-
-  function toggleMenu(e){
-    e.stopPropagation();
-    settingsMenu.classList.toggle('is-open');
-  }
-  settingsBtn.addEventListener('click', toggleMenu);
-
-  document.addEventListener('click', (e)=>{
-    if (!settingsMenu.contains(e.target) && e.target !== settingsBtn) {
-      settingsMenu.classList.remove('is-open');
-    }
-  });
-
-  document.addEventListener('keydown', (e)=>{
-    if (e.key === 'Escape') settingsMenu.classList.remove('is-open');
-  });
-})();
-
-// ============================
-// Settings actions
-// ============================
-(function setupSettingsActions(){
-  const themeBtn =
-    document.getElementById('darkModeToggle') ||
-    document.getElementById('btnTheme') ||
-    document.getElementById('menuTheme') ||
-    document.querySelector('[data-action="toggle-theme"]');
-
-  const howBtn =
-    document.getElementById('howItWorksBtn') ||
-    document.getElementById('menuHow') ||
-    document.querySelector('[data-action="how"]');
-
-  // ------------- Dark Mode toggle -------------
-  function applyTheme(theme){
-    if (theme === 'dark'){
-      document.documentElement.setAttribute('data-theme', 'dark');
-      document.body.classList.add('dark');
-    } else {
-      document.documentElement.setAttribute('data-theme', 'light');
-      document.body.classList.remove('dark');
-    }
-    try { localStorage.setItem('theme', theme); } catch(e){}
-  }
-
-  (function initThemeFromStorage(){
-    try {
-      const saved = localStorage.getItem('theme');
-      if (saved === 'dark' || saved === 'light') applyTheme(saved);
-    } catch(e){}
-  })();
-
-  if (themeBtn){
-    if (!themeBtn.getAttribute('type')) themeBtn.setAttribute('type', 'button');
-    themeBtn.addEventListener('click', function(e){
-      e.stopPropagation();
-      const cur = (document.documentElement.getAttribute('data-theme') || (document.body.classList.contains('dark') ? 'dark' : 'light'));
-      applyTheme(cur === 'dark' ? 'light' : 'dark');
-      // keep menu open
-    });
-  }
-
-  // ------------- How it works modal -------------
-  const hiwBtn = howBtn;
-  const hiwPopup = document.getElementById('howItWorksPopup');
-
-  if (hiwBtn && hiwPopup){
-    hiwBtn.addEventListener('click', (e) => {
-      e.stopPropagation();                 // avoid the global closer
-      hiwPopup.classList.remove('hidden');
-    });
-
-    // Clicking anywhere closes it
-    document.addEventListener('click', () => {
-      if (!hiwPopup.classList.contains('hidden')) {
-        hiwPopup.classList.add('hidden');
-      }
-    });
-
-    // Escape closes it
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !hiwPopup.classList.contains('hidden')) {
-        hiwPopup.classList.add('hidden');
-      }
-    });
-  }
-
-  // ============================
-// CLICK SOUND FINAL FIX
+// CLICK SOUND (restored)
 // ============================
 window.addEventListener("DOMContentLoaded", () => {
   const clickSound = document.getElementById("clickSound");
@@ -395,7 +350,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   let audioUnlocked = false;
 
-  // Unlock audio context on the very first user click
+  // Unlock audio context on first user input
   document.addEventListener("pointerdown", () => {
     if (!audioUnlocked) {
       const silent = clickSound.cloneNode(true);
@@ -411,14 +366,14 @@ window.addEventListener("DOMContentLoaded", () => {
     s.play().catch(err => console.warn("Audio blocked:", err));
   }
 
-  // Buttons
+  // Static buttons
   const ids = ["btnSubmit", "btnClear", "btnSettings", "darkModeToggle", "howItWorksBtn"];
   ids.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener("click", playClick);
   });
 
-  // Dynamically created item cards
+  // Dynamic elements (item cards)
   const observer = new MutationObserver(() => {
     document.querySelectorAll(".item-card").forEach(el => {
       if (!el.dataset.clickBound) {
@@ -429,5 +384,3 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   observer.observe(document.body, { childList: true, subtree: true });
 });
-
-})();
