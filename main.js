@@ -73,7 +73,7 @@ const DIFF_ORDER = ['Easy', 'Medium', 'Hard'];
 
 const DIFFICULTY_SETTINGS = {
   Easy:  { poolSize: 6, solutionSizeRange: [3,3], statRange: [-3,3], allowMult: false },
-  Medium:{ poolSize: 9, solutionSizeRange: [4,5], statRange: [-3,3], allowMult: true, multChance: .25 },
+  Medium:{ poolSize: 6, solutionSizeRange: [3,4], statRange: [-3,3], allowMult: true, multChance: .25 },
   Hard:  { poolSize: 9, solutionSizeRange: [4,6], statRange: [-5,5], allowMult: true, multChance: .5 }
 };
 
