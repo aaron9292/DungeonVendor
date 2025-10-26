@@ -163,6 +163,8 @@ function clearSavedPuzzle(){
 // ============================
 function buildSolvableFromHiddenSolution(cfg) {
   const rng = state.rng || Math.random;
+
+  const diffKey = (typeof cfg === 'string') ? cfg : (cfg.name || curDiffName());
   const settings = DIFFICULTY_SETTINGS[cfg.name || cfg];
   const subset = pickItems(BASE_ITEMS, settings.poolSize, rng);
 
