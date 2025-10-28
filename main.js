@@ -301,49 +301,6 @@ function nextDailyRound(reset = false) {
 }
 
 // ============================
-// Boot sequence
-// ============================
-window.addEventListener('DOMContentLoaded', () => {
-  state.rng = Math.random;
-
-  const saved = loadSavedPuzzle();
-  if (saved) {
-    console.log("Restoring saved puzzle:", saved);
-    state.items = saved.items;
-    state.target = saved.target;
-    state.daily.diffIndex = saved.difficulty ?? 0;
-    state.daily.round = saved.round ?? 0;
-    state.solutionCount = saved.solutionCount ?? '?';
-    updateHeader();
-    render();
-  } else {
-    nextDailyRound(true);
-  }
-
-  const submitBtn = document.getElementById('btnSubmit');
-  if (submitBtn) {
-    submitBtn.addEventListener('click', function(){
-      const logEl = document.getElementById('log');
-      if (isSolved()){
-        if (logEl) logEl.textContent = '✅ Correct! Advancing…';
-        advanceAfterSuccess();
-      } else {
-        if (logEl) logEl.textContent = '❌ Not quite. Keep tweaking your loadout.';
-      }
-    });
-  }
-
-  const clearBtn = document.getElementById('btnClear');
-  if (clearBtn) {
-    clearBtn.addEventListener('click', function(){
-      state.selected = [];
-      document.querySelectorAll('.item-card.selected').forEach(el => el.classList.remove('selected'));
-      updateTotals();
-    });
-  }
-});
-
-// ============================
 // CLICK SOUND (restored)
 // ============================
 window.addEventListener("DOMContentLoaded", () => {
@@ -386,3 +343,82 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   observer.observe(document.body, { childList: true, subtree: true });
 });
+
+
+// ============================
+// FINAL DAILY RESET + SAFE BOOT FIX
+// ============================
+
+(function safeBoot() {
+  // Wait until all functions (like render) are defined
+  const checkReady = () => {
+    if (typeof render !== "function" || typeof nextDailyRound !== "function") {
+      // Try again in a bit if not ready
+      return setTimeout(checkReady, 100);
+    }
+
+    // Once ready, hook into DOMContentLoaded
+    window.addEventListener("DOMContentLoaded", () => {
+      state.rng = Math.random;
+
+      const today = new Date().toLocaleDateString("en-US", { timeZone: "America/Chicago" });
+      let saved = null;
+
+      try {
+        const raw = localStorage.getItem("dungeonVendorPuzzle");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.date === today) {
+            saved = parsed;
+          } else {
+            console.log("🕛 New day detected — clearing previous puzzle data");
+            clearSavedPuzzle();
+          }
+        }
+      } catch (e) {
+        console.warn("⚠️ Error reading saved puzzle:", e);
+        clearSavedPuzzle();
+      }
+
+      if (saved && saved.items && saved.items.length) {
+        console.log("Restoring saved puzzle:", saved);
+        state.items = saved.items;
+        state.target = saved.target;
+        state.daily.diffIndex = saved.difficulty ?? 0;
+        state.daily.round = saved.round ?? 0;
+        state.solutionCount = saved.solutionCount ?? "?";
+        updateHeader();
+        render();
+      } else {
+        console.log("🔄 Building new daily puzzle...");
+        state.daily.diffIndex = 0;
+        state.daily.round = 0;
+        nextDailyRound(true);
+      }
+
+      const submitBtn = document.getElementById("btnSubmit");
+      if (submitBtn) {
+        submitBtn.addEventListener("click", function(){
+          const logEl = document.getElementById("log");
+          if (isSolved()){
+            if (logEl) logEl.textContent = "✅ Correct! Advancing…";
+            advanceAfterSuccess();
+          } else {
+            if (logEl) logEl.textContent = "❌ Not quite. Keep tweaking your loadout.";
+          }
+        });
+      }
+
+      const clearBtn = document.getElementById("btnClear");
+      if (clearBtn) {
+        clearBtn.addEventListener("click", function(){
+          state.selected = [];
+          document.querySelectorAll(".item-card.selected").forEach(el => el.classList.remove("selected"));
+          updateTotals();
+        });
+      }
+    });
+  };
+
+  checkReady();
+})();
